@@ -15,6 +15,7 @@ namespace SemillasVivas.UI.Navigation
         Collection,
         Settings,
         Controls,
+        Credits,
     }
 
     public sealed class UIScreenManager : MonoBehaviour

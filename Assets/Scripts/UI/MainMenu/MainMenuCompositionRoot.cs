@@ -1,5 +1,7 @@
 using System.Collections;
 using SemillasVivas.UI.Navigation;
+using SemillasVivas.Systems;
+using SemillasVivas.Systems.Audio;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -8,18 +10,28 @@ namespace SemillasVivas.UI.MainMenu
 {
     public sealed class MainMenuCompositionRoot : MonoBehaviour
     {
-        [SerializeField] private float loadingScreenDuration = 0.75f;
         [SerializeField] private RuntimeAnimatorController levelSelectCharacterAnimatorController;
+
+        [Header("Colección de semillas")]
+        [Tooltip("Sprites de las tarjetas (orden: Acaí, Chontaduro, Copoazú, Sacha Inchi, Uva Caimora).")]
+        [SerializeField] private Sprite[] seedCardSprites;
+        [Tooltip("Sprites de pantalla completa de información (mismo orden que las tarjetas).")]
+        [SerializeField] private Sprite[] seedInfoSprites;
+        [SerializeField] private int initiallyUnlockedLevels = 1;
 
         private UIScreenManager _screenManager;
         private CollectionScreenController _collectionController;
         private CharacterSelectController _characterSelectController;
         private LevelSelectScreenController _levelSelectScreenController;
         private SettingsScreenController _settingsScreenController;
-        private Coroutine _loadingRoutine;
+        private Coroutine _loadingRoutine; 
 
         private void Awake()
         {
+            
+            Screen.orientation = ScreenOrientation.LandscapeLeft;
+
+            GameAudioService.EnsureInstance();
             _screenManager = gameObject.GetComponent<UIScreenManager>();
 
             if (_screenManager == null)
@@ -33,7 +45,10 @@ namespace SemillasVivas.UI.MainMenu
             _screenManager.Initialize(UIScreenId.Start);
 
             _collectionController = new CollectionScreenController();
-            _collectionController.Initialize(UIPathUtility.FindRequired(screenContainer, "CollectionScreen"));
+            _collectionController.Initialize(
+                UIPathUtility.FindRequired(screenContainer, "CollectionScreen"),
+                seedCardSprites,
+                seedInfoSprites);
 
             _characterSelectController = new CharacterSelectController();
             _characterSelectController.Initialize(
@@ -51,6 +66,20 @@ namespace SemillasVivas.UI.MainMenu
             _settingsScreenController.Initialize(UIPathUtility.FindRequired(screenContainer, "SettingsScreen"));
 
             BindNavigation(screenContainer);
+
+            if (PlayerPrefs.GetInt("NavigateToLevelSelect", 0) == 1)
+            {
+                PlayerPrefs.DeleteKey("NavigateToLevelSelect");
+                PlayerPrefs.Save();
+                _screenManager.Show(UIScreenId.LevelSelect);
+            }
+
+            if (PlayerPrefs.GetInt("NavigateToMenu", 0) == 1)
+            {
+                PlayerPrefs.DeleteKey("NavigateToMenu");
+                PlayerPrefs.Save();
+                _screenManager.Show(UIScreenId.Menu);
+            }
         }
 
         private void RegisterScreens(Transform screenContainer)
@@ -64,6 +93,7 @@ namespace SemillasVivas.UI.MainMenu
             _screenManager.Register(UIScreenId.Collection, UIPathUtility.FindRequired(screenContainer, "CollectionScreen").gameObject);
             _screenManager.Register(UIScreenId.Settings, UIPathUtility.FindRequired(screenContainer, "SettingsScreen").gameObject);
             _screenManager.Register(UIScreenId.Controls, UIPathUtility.FindRequired(screenContainer, "ControlsScreen").gameObject);
+            _screenManager.Register(UIScreenId.Credits, UIPathUtility.FindRequired(screenContainer, "Credits").gameObject);
         }
 
         private void BindNavigation(Transform screenContainer)
@@ -71,31 +101,60 @@ namespace SemillasVivas.UI.MainMenu
             Bind(screenContainer, "StartScreen/Start", StartGameFlow);
             Bind(screenContainer, "StartScreen/Close", ExitApplication);
 
-            Bind(screenContainer, "MenuScreen/Back", () => _screenManager.Show(UIScreenId.Start));
-            Bind(screenContainer, "MenuScreen/Character", () => _screenManager.Show(UIScreenId.Collection));
-            Bind(screenContainer, "MenuScreen/Buttons_Right/Play", () => _screenManager.Show(UIScreenId.CharacterSelect));
+            Bind(screenContainer, "LoadingScreen/Seguir", ShowMenu);
+
+            Transform menuBack = screenContainer.Find("MenuScreen/Back");
+            if (menuBack != null) menuBack.gameObject.SetActive(false);
+
+            Bind(screenContainer, "MenuScreen/Book", () => _screenManager.Show(UIScreenId.Collection));
+            Bind(screenContainer, "MenuScreen/Character", () => _screenManager.Show(UIScreenId.Credits));
+            Bind(screenContainer, "MenuScreen/Buttons_Right/Play", () => _screenManager.Show(UIScreenId.LevelSelect));
             Bind(screenContainer, "MenuScreen/Buttons_Right/Levels", () => _screenManager.Show(UIScreenId.LevelSelect));
             Bind(screenContainer, "MenuScreen/Buttons_Right/Instructions", () => _screenManager.Show(UIScreenId.Instructions));
-            Bind(screenContainer, "MenuScreen/Buttons_Right/Settings", () => _screenManager.Show(UIScreenId.Settings));
+            Bind(screenContainer, "MenuScreen/Buttons_Right/Settings", () =>
+            {
+                _settingsScreenController.ShowMainPanel();
+                _screenManager.Show(UIScreenId.Settings);
+            });
             Bind(screenContainer, "MenuScreen/Buttons_Right/Exit", ExitApplication);
 
             Bind(screenContainer, "CharacterSelectScreen/Back", () => _screenManager.Show(UIScreenId.Menu));
 
             Bind(screenContainer, "LevelSelectScreen/Back", () => _screenManager.Show(UIScreenId.Menu));
-            _levelSelectScreenController.BindLevelButton(UIPathUtility.EnsureButton(screenContainer, "LevelSelectScreen/Levels/Lvl_1"), "Level_01", 0);
-            _levelSelectScreenController.BindLevelButton(UIPathUtility.EnsureButton(screenContainer, "LevelSelectScreen/Levels/Lvl_2"), "Level_02", 1);
-            _levelSelectScreenController.BindLevelButton(UIPathUtility.EnsureButton(screenContainer, "LevelSelectScreen/Levels/Lvl_3"), "Level_03", 2);
-            _levelSelectScreenController.BindLevelButton(UIPathUtility.EnsureButton(screenContainer, "LevelSelectScreen/Levels/Lvl_4"), "Level_04", 3);
-            _levelSelectScreenController.BindLevelButton(UIPathUtility.EnsureButton(screenContainer, "LevelSelectScreen/Levels/Lvl_5"), "Level_05", 4);
+            Button level1Button = UIPathUtility.EnsureButton(screenContainer, "LevelSelectScreen/Levels/Lvl_1");
+            Button level2Button = UIPathUtility.EnsureButton(screenContainer, "LevelSelectScreen/Levels/Lvl_2");
+            Button level3Button = UIPathUtility.EnsureButton(screenContainer, "LevelSelectScreen/Levels/Lvl_3");
+            Button level4Button = UIPathUtility.EnsureButton(screenContainer, "LevelSelectScreen/Levels/Lvl_4");
+            Button level5Button = UIPathUtility.EnsureButton(screenContainer, "LevelSelectScreen/Levels/Lvl_5");
+
+            _levelSelectScreenController.BindLevelButton(level1Button, "DemoGameplay", 0);
+            _levelSelectScreenController.BindLevelButton(level2Button, "lvl2", 1);
+            _levelSelectScreenController.BindLevelButton(level3Button, "lvl3", 2);
+            _levelSelectScreenController.BindLevelButton(level4Button, "lvl4", 3);
+            _levelSelectScreenController.BindLevelButton(level5Button, "lvl5", 4);
+            
+            int savedUnlocked = LevelProgressService.GetUnlockedLevelCount();
+            int finalUnlocked = Mathf.Max(initiallyUnlockedLevels, savedUnlocked);
+            Debug.Log($"[MainMenu] Progreso cargado — guardado: {savedUnlocked}, " +
+                      $"mínimo Inspector: {initiallyUnlockedLevels}, final: {finalUnlocked}");
+            _levelSelectScreenController.SetUnlockedLevels(finalUnlocked);
 
             Bind(screenContainer, "Instructions/Back", () => _screenManager.Show(UIScreenId.Menu));
 
             Bind(screenContainer, "CollectionScreen/Back", HandleCollectionBack);
 
-            Bind(screenContainer, "SettingsScreen/Back", () => _screenManager.Show(UIScreenId.Menu));
-            Bind(screenContainer, "SettingsScreen/Background/Game/ButtonOptions/Controls", () => _screenManager.Show(UIScreenId.Controls));
+            Bind(screenContainer, "SettingsScreen/Back", () =>
+            {
+                if (_settingsScreenController.HandleBackRequested())
+                {
+                    return;
+                }
+
+                _screenManager.Show(UIScreenId.Menu);
+            });
 
             Bind(screenContainer, "ControlsScreen/Back", () => _screenManager.Show(UIScreenId.Settings));
+            Bind(screenContainer, "Credits/Back", () => _screenManager.Show(UIScreenId.Menu));
         }
 
         private void Update()
@@ -112,7 +171,11 @@ namespace SemillasVivas.UI.MainMenu
         {
             Button button = UIPathUtility.EnsureButton(root, path);
             button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(action);
+            button.onClick.AddListener(() =>
+            {
+                GameAudioService.Instance?.PlayUiClick();
+                action?.Invoke();
+            });
         }
 
         private void StartGameFlow()
@@ -120,20 +183,16 @@ namespace SemillasVivas.UI.MainMenu
             if (_loadingRoutine != null)
             {
                 StopCoroutine(_loadingRoutine);
+                _loadingRoutine = null;
             }
 
-            _loadingRoutine = StartCoroutine(ShowLoadingThenMenu());
-        }
-
-        private IEnumerator ShowLoadingThenMenu()
-        {
             _screenManager.ClearHistory();
             _screenManager.Show(UIScreenId.Loading, false);
+        }
 
-            yield return new WaitForSeconds(loadingScreenDuration);
-
+        private void ShowMenu()
+        {
             _screenManager.Show(UIScreenId.Menu, false);
-            _loadingRoutine = null;
         }
 
         private void HandleCollectionBack()

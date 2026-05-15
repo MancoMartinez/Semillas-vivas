@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20fc9c693c9f71649b4a9cdd1d17c114, type: 3}
+  m_Name: GameAudioCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::SemillasVivas.Systems.Audio.GameAudioCatalog
+  mixer: {fileID: 24100000, guid: f24150a0415d5e444860d223ef240a27, type: 2}
+  masterGroup: {fileID: 24300002, guid: f24150a0415d5e444860d223ef240a27, type: 2}
+  cues:
+  - cue: 0
+    clip: {fileID: 8300000, guid: 14bfe93aacb20414ca95f17b5822066f, type: 3}
+  - cue: 1
+    clip: {fileID: 8300000, guid: 28bd739755d970b489b5e4adedfefa1c, type: 3}
+  - cue: 2
+    clip: {fileID: 8300000, guid: 7105473776f9f514aa56117938a139b3, type: 3}
+  - cue: 3
+    clip: {fileID: 8300000, guid: 64273c1dbf581f3409ff3eaf335eae1c, type: 3}
+  - cue: 4
+    clip: {fileID: 8300000, guid: eaa11bb93698a9a49945e4a445c10381, type: 3}
+  - cue: 5
+    clip: {fileID: 8300000, guid: 83b1bfc6d91cb7e4f97a127ca0e451bf, type: 3}
+  - cue: 6
+    clip: {fileID: 8300000, guid: 846f6a43d98032a43921fb917b362b32, type: 3}
+  - cue: 7
+    clip: {fileID: 8300000, guid: 022a3e84ba1767a4eb302083c541d3b5, type: 3}
+  - cue: 8
+    clip: {fileID: 8300000, guid: 4c3d68ed3b857c34b96879b3e229048a, type: 3}
+  - cue: 9
+    clip: {fileID: 8300000, guid: 11b95686b2a5eda4fb767a6fbc671685, type: 3}
+  - cue: 10
+    clip: {fileID: 8300000, guid: 14bfe93aacb20414ca95f17b5822066f, type: 3}
+  - cue: 11
+    clip: {fileID: 8300000, guid: 4e77359b5bcb43e41a52cb2f553122c9, type: 3}
+  musicTracks:
+  - sceneName: MainMenu
+    clip: {fileID: 8300000, guid: 3ed0845a362ebd44f8de6a94d3412e1e, type: 3}
+  - sceneName: DemoGameplay
+    clip: {fileID: 8300000, guid: 1022fbdb53995b449b3c9e37722ff87b, type: 3}
+  - sceneName: lvl2
+    clip: {fileID: 8300000, guid: c24310e7878eec7409966ffc80ace365, type: 3}
+  - sceneName: lvl3
+    clip: {fileID: 8300000, guid: 27fc391c4c48d0e4b82d841802961684, type: 3}
+  - sceneName: lvl4
+    clip: {fileID: 8300000, guid: a6c348157d06eba4e9335e53dd80289b, type: 3}
+  - sceneName: lvl5
+    clip: {fileID: 8300000, guid: 96c2a9ec0ef73fa4998281db18754914, type: 3}
+  - sceneName: Boss
+    clip: {fileID: 8300000, guid: cf4d6a47dc0087740b9381b1f5e3e66c, type: 3}

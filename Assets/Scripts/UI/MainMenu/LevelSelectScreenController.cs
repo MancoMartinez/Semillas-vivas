@@ -15,6 +15,14 @@ namespace SemillasVivas.UI.MainMenu
 
         private readonly Dictionary<Button, string> _sceneNamesByButton = new();
         private readonly List<Button> _orderedLevelButtons = new();
+        private readonly List<Image> _levelButtonImages = new();
+
+        private Sprite _unlockedSprite;
+        private Color  _unlockedColor;
+        private Sprite _lockedSprite;
+        private Color  _lockedColor;
+        private bool   _hasUnlockedRef;
+        private bool   _hasLockedRef;
 
         private MonoBehaviour _host;
         private Transform _levelSelectRoot;
@@ -27,6 +35,7 @@ namespace SemillasVivas.UI.MainMenu
         private Coroutine _movementRoutine;
         private Action<string> _onLevelReached;
         private int _currentLevelIndex = -1;
+        private int _unlockedLevelCount = int.MaxValue;
 
         public void Initialize(
             MonoBehaviour host,
@@ -63,8 +72,63 @@ namespace SemillasVivas.UI.MainMenu
             EnsureOrderedButtonCapacity(levelIndex + 1);
             _orderedLevelButtons[levelIndex] = button;
 
+            EnsureImageListCapacity(levelIndex + 1);
+            Image img = button.GetComponent<Image>();
+            _levelButtonImages[levelIndex] = img;
+
+            if (img != null)
+            {
+                if (levelIndex == 0 && !_hasUnlockedRef)
+                {
+                    
+                    _unlockedSprite  = img.sprite;
+                    _unlockedColor   = img.color;
+                    _hasUnlockedRef  = true;
+                }
+                else if (levelIndex > 0 && !_hasLockedRef)
+                {
+                    
+                    _lockedSprite = img.sprite;
+                    _lockedColor  = img.color;
+                    _hasLockedRef = true;
+                }
+            }
+
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => MoveCharacterToLevel(button));
+        }
+
+        public void SetUnlockedLevels(int unlockedLevelCount)
+        {
+            _unlockedLevelCount = Mathf.Max(1, unlockedLevelCount);
+
+            Debug.Log($"[LevelSelect] SetUnlockedLevels({_unlockedLevelCount}) — " +
+                      $"{_orderedLevelButtons.Count} botones. " +
+                      $"unlockedSprite={_unlockedSprite?.name} lockedSprite={_lockedSprite?.name}");
+
+            for (int index = 0; index < _orderedLevelButtons.Count; index++)
+            {
+                Button levelButton = _orderedLevelButtons[index];
+
+                if (levelButton == null)
+                {
+                    continue;
+                }
+
+                bool isUnlocked = index < _unlockedLevelCount;
+                levelButton.interactable = isUnlocked;
+
+                Image img = index < _levelButtonImages.Count ? _levelButtonImages[index] : null;
+
+                if (img != null && _hasUnlockedRef && _hasLockedRef)
+                {
+                    img.sprite = isUnlocked ? _unlockedSprite : _lockedSprite;
+                    img.color  = isUnlocked ? _unlockedColor  : _lockedColor;
+                    img.SetNativeSize(); 
+                }
+
+                Debug.Log($"[LevelSelect] Lvl_{index + 1}: {(isUnlocked ? "DESBLOQUEADO ✓" : "bloqueado 🔒")}");
+            }
         }
 
         public void Tick()
@@ -91,6 +155,13 @@ namespace SemillasVivas.UI.MainMenu
         private void MoveCharacterToLevel(Button button)
         {
             if (!_sceneNamesByButton.TryGetValue(button, out string sceneName))
+            {
+                return;
+            }
+
+            int targetIndex = GetButtonIndex(button);
+
+            if (targetIndex < 0 || targetIndex >= _unlockedLevelCount)
             {
                 return;
             }
@@ -241,6 +312,14 @@ namespace SemillasVivas.UI.MainMenu
             while (_orderedLevelButtons.Count < size)
             {
                 _orderedLevelButtons.Add(null);
+            }
+        }
+
+        private void EnsureImageListCapacity(int size)
+        {
+            while (_levelButtonImages.Count < size)
+            {
+                _levelButtonImages.Add(null);
             }
         }
 

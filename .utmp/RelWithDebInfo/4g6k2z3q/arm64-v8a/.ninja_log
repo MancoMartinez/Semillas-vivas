@@ -1,0 +1,23 @@
+# ninja log v5
+1588	3040	7987480302107399	C:/Users/oto33/Desktop/Por la ventana podcast/Semillas vivas/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/4g6k2z3q/obj/arm64-v8a/libswappywrapper.so	94afc291fd2131ec
+1	4113	7987480314608090	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	81ff64911b02ae1b
+120	1586	7987480289098571	FramePacing/CMakeFiles/swappywrapper.dir/UnitySwappyWrapper.cpp.o	97e6aa5af809f8d4
+59	3553	7987480308872169	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	9cc8644683619541
+82	3599	7987480309239816	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	5d88908c5f33c80a
+109	3976	7987480313214958	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	ff32dfc3d095c58c
+39	3614	7987480309516788	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	34ecef394bc735d9
+49	3681	7987480310241393	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	295aeff1865d31d
+99	3634	7987480309687666	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	f7282b2ad9482d5b
+70	4009	7987480313601364	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	6835ba897e583f7a
+4113	4261	7987480316107217	C:/Users/oto33/Desktop/Por la ventana podcast/Semillas vivas/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/4g6k2z3q/obj/arm64-v8a/libgame.so	933769419b09ab5d
+80	640	8005098345015534	FramePacing/CMakeFiles/swappywrapper.dir/UnitySwappyWrapper.cpp.o	97e6aa5af809f8d4
+640	920	8005098347657287	C:/Users/oto33/Desktop/Por la ventana podcast/Semillas vivas/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/4g6k2z3q/obj/arm64-v8a/libswappywrapper.so	94afc291fd2131ec
+48	2184	8005098360423239	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	9cc8644683619541
+26	2196	8005098360563926	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	5d88908c5f33c80a
+33	2217	8005098360770103	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	34ecef394bc735d9
+56	2226	8005098360840465	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	f7282b2ad9482d5b
+41	2289	8005098361480442	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	295aeff1865d31d
+72	2477	8005098363386582	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	6835ba897e583f7a
+17	2566	8005098364288366	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	81ff64911b02ae1b
+64	2575	8005098364368764	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	ff32dfc3d095c58c
+2575	2687	8005098365507238	C:/Users/oto33/Desktop/Por la ventana podcast/Semillas vivas/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/4g6k2z3q/obj/arm64-v8a/libgame.so	933769419b09ab5d

@@ -1,117 +1,98 @@
 using System;
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace SemillasVivas.UI.MainMenu
 {
+    
     public sealed class CollectionScreenController
     {
+        
         private readonly List<SeedDefinition> _seeds = new()
         {
-            new SeedDefinition("Acaí", "Semilla asociada a la energía vital. Representa movimiento, resistencia y conexión con el territorio."),
-            new SeedDefinition("Copoazú", "Semilla vinculada al bienestar y al cuidado. Refuerza la idea de protección y vida."),
-            new SeedDefinition("Uva Caimarona", "Semilla relacionada con la defensa y la resistencia. Su historia refuerza el valor del conocimiento natural."),
-            new SeedDefinition("Sacha Inchi", "Semilla asociada a la claridad mental y al aprendizaje. Invita a explorar y descubrir."),
-            new SeedDefinition("Chontaduro", "Semilla ligada a la fuerza ancestral. Su valor cultural acompaña el cierre del recorrido educativo."),
+            new SeedDefinition("Acaí"),
+            new SeedDefinition("Chontaduro"),
+            new SeedDefinition("Copoazú"),
+            new SeedDefinition("Sacha Inchi"),
+            new SeedDefinition("Uva Caimora"),
+            new SeedDefinition("Coca"),
         };
 
         private readonly SlotBinding[] _slots = new SlotBinding[3];
 
-        private GameObject _overlayContainer;
-        private GameObject _detailPanel;
-        private TMP_Text _detailName;
-        private TMP_Text _detailDescription;
-        private Button _carouselLeftButton;
-        private Button _carouselRightButton;
-        private Button _openDetailButton;
-        private Button _detailLeftButton;
-        private Button _detailRightButton;
+        private Button  _carouselLeftButton;
+        private Button  _carouselRightButton;
 
+        private GameObject _infoSemillasPanel;
+        private Image      _infoSemillasImage;
+
+        private Sprite[] _cardSprites;
+        private Sprite[] _infoSprites;
         private int _centerSeedIndex;
-        private int _selectedSeedIndex;
 
-        public bool IsDetailOpen => _detailPanel != null && _detailPanel.activeSelf;
+        public bool IsInfoOpen => _infoSemillasPanel != null && _infoSemillasPanel.activeSelf;
 
-        public void Initialize(Transform collectionScreenRoot)
+        public void Initialize(Transform collectionScreenRoot,
+                               Sprite[] cardSprites = null,
+                               Sprite[] infoSprites = null)
         {
             if (collectionScreenRoot == null)
             {
                 throw new ArgumentNullException(nameof(collectionScreenRoot));
             }
 
-            _carouselLeftButton = UIPathUtility.EnsureButton(collectionScreenRoot, "CarouselRoot/Left");
-            _carouselRightButton = UIPathUtility.EnsureButton(collectionScreenRoot, "CarouselRoot/Right");
-            _openDetailButton = UIPathUtility.EnsureButton(collectionScreenRoot, "CarouselRoot/Info");
-            _detailLeftButton = UIPathUtility.EnsureButton(collectionScreenRoot, "OverlayContainer/DetailPanel/Panel/Left");
-            _detailRightButton = UIPathUtility.EnsureButton(collectionScreenRoot, "OverlayContainer/DetailPanel/Panel/Right");
+            _cardSprites = cardSprites;
+            _infoSprites = infoSprites;
 
-            _overlayContainer = UIPathUtility.FindRequired(collectionScreenRoot, "OverlayContainer").gameObject;
-            _detailPanel = UIPathUtility.FindRequired(collectionScreenRoot, "OverlayContainer/DetailPanel").gameObject;
-            _detailName = UIPathUtility.FindRequired(collectionScreenRoot, "OverlayContainer/DetailPanel/Panel/SeedName").GetComponent<TMP_Text>();
-            _detailDescription = UIPathUtility.FindRequired(collectionScreenRoot, "OverlayContainer/DetailPanel/Panel/SeedDescription").GetComponent<TMP_Text>();
+            _carouselLeftButton  = UIPathUtility.EnsureButton(collectionScreenRoot, "CarouselRoot/Left");
+            _carouselRightButton = UIPathUtility.EnsureButton(collectionScreenRoot, "CarouselRoot/Right");
 
             _slots[0] = BuildSlot(collectionScreenRoot, "CarouselRoot/VisibleSeeds/SlotLeft/SeeCard");
             _slots[1] = BuildSlot(collectionScreenRoot, "CarouselRoot/VisibleSeeds/SlotCenter/SeeCard");
             _slots[2] = BuildSlot(collectionScreenRoot, "CarouselRoot/VisibleSeeds/SlotRight/SeeCard");
 
+            Transform infoPanelTransform = FindTransformByName(collectionScreenRoot, "InfoSemillas");
+
+            if (infoPanelTransform != null)
+            {
+                _infoSemillasPanel = infoPanelTransform.gameObject;
+                _infoSemillasImage = infoPanelTransform.GetComponent<Image>()
+                                  ?? infoPanelTransform.GetComponentInChildren<Image>(true);
+                Debug.Log($"[CollectionScreen] ✓ InfoSemillas encontrado en: " +
+                          $"'{BuildPath(infoPanelTransform)}' | " +
+                          $"Image: {(_infoSemillasImage != null ? _infoSemillasImage.name : "NULL")}");
+            }
+            else
+            {
+                Debug.LogError("[CollectionScreen] ✗ InfoSemillas NO encontrado. " +
+                               "Asegúrate de que exista un GameObject llamado exactamente " +
+                               "'InfoSemillas' en algún lugar bajo CollectionScreen.");
+            }
+
             _carouselLeftButton.onClick.RemoveAllListeners();
             _carouselRightButton.onClick.RemoveAllListeners();
-            _openDetailButton.onClick.RemoveAllListeners();
-            _detailLeftButton.onClick.RemoveAllListeners();
-            _detailRightButton.onClick.RemoveAllListeners();
-
             _carouselLeftButton.onClick.AddListener(ShowPreviousSeed);
             _carouselRightButton.onClick.AddListener(ShowNextSeed);
-            _openDetailButton.onClick.AddListener(OpenCenterSeedDetail);
-            _detailLeftButton.onClick.AddListener(ShowPreviousDetail);
-            _detailRightButton.onClick.AddListener(ShowNextDetail);
 
-            _overlayContainer.SetActive(false);
-            _detailPanel.SetActive(false);
+            if (_infoSemillasPanel != null)
+            {
+                _infoSemillasPanel.SetActive(false);
+            }
+
             _centerSeedIndex = 0;
             RefreshCarousel();
         }
 
         public bool HandleBackRequested()
         {
-            if (!IsDetailOpen)
+            if (!IsInfoOpen)
             {
                 return false;
             }
 
-            CloseDetail();
+            CloseInfo();
             return true;
-        }
-
-        public void OpenCenterSeedDetail()
-        {
-            OpenDetail(_centerSeedIndex);
-        }
-
-        public void CloseDetail()
-        {
-            if (_detailPanel != null)
-            {
-                _detailPanel.SetActive(false);
-            }
-
-            if (_overlayContainer != null)
-            {
-                _overlayContainer.SetActive(false);
-            }
-        }
-
-        private SlotBinding BuildSlot(Transform collectionScreenRoot, string cardPath)
-        {
-            Transform cardRoot = UIPathUtility.FindRequired(collectionScreenRoot, cardPath);
-            Button button = UIPathUtility.EnsureButton(cardRoot);
-            TMP_Text label = cardRoot.GetComponentInChildren<TMP_Text>(true);
-
-            button.onClick.RemoveAllListeners();
-
-            return new SlotBinding(button, label);
         }
 
         private void ShowPreviousSeed()
@@ -126,34 +107,10 @@ namespace SemillasVivas.UI.MainMenu
             RefreshCarousel();
         }
 
-        private void ShowPreviousDetail()
-        {
-            OpenDetail(Wrap(_selectedSeedIndex - 1));
-        }
-
-        private void ShowNextDetail()
-        {
-            OpenDetail(Wrap(_selectedSeedIndex + 1));
-        }
-
-        private void OpenDetail(int seedIndex)
-        {
-            _selectedSeedIndex = Wrap(seedIndex);
-            _centerSeedIndex = _selectedSeedIndex;
-
-            SeedDefinition seed = _seeds[_selectedSeedIndex];
-            _detailName.text = seed.Name;
-            _detailDescription.text = seed.Description;
-            _overlayContainer.SetActive(true);
-            _detailPanel.SetActive(true);
-
-            RefreshCarousel();
-        }
-
         private void RefreshCarousel()
         {
-            int leftIndex = Wrap(_centerSeedIndex - 1);
-            int rightIndex = Wrap(_centerSeedIndex + 1);
+            int leftIndex   = Wrap(_centerSeedIndex - 1);
+            int rightIndex  = Wrap(_centerSeedIndex + 1);
 
             BindSlot(_slots[0], leftIndex);
             BindSlot(_slots[1], _centerSeedIndex);
@@ -162,15 +119,96 @@ namespace SemillasVivas.UI.MainMenu
 
         private void BindSlot(SlotBinding slot, int seedIndex)
         {
-            SeedDefinition seed = _seeds[seedIndex];
-
-            if (slot.Label != null)
+            
+            if (slot.CardImage != null)
             {
-                slot.Label.text = seed.Name;
+                slot.CardImage.sprite = GetCardSprite(seedIndex);
+                
+                slot.CardImage.enabled = slot.CardImage.sprite != null;
             }
 
             slot.Button.onClick.RemoveAllListeners();
-            slot.Button.onClick.AddListener(() => OpenDetail(seedIndex));
+            int capturedIndex = seedIndex;
+            slot.Button.onClick.AddListener(() => OpenInfo(capturedIndex));
+        }
+
+        private void OpenInfo(int seedIndex)
+        {
+            Debug.Log($"[CollectionScreen] OpenInfo({seedIndex}) — " +
+                      $"panel: {(_infoSemillasPanel != null ? _infoSemillasPanel.name : "NULL")} | " +
+                      $"image: {(_infoSemillasImage != null ? _infoSemillasImage.name : "NULL")} | " +
+                      $"sprite[{seedIndex}]: {(GetInfoSprite(seedIndex) != null ? GetInfoSprite(seedIndex).name : "NULL")}");
+
+            if (_infoSemillasPanel == null)
+            {
+                Debug.LogError("[CollectionScreen] No se puede abrir InfoSemillas: _infoSemillasPanel es null. " +
+                               "Revisa la consola de Awake para ver por qué no se encontró.");
+                return;
+            }
+
+            if (_infoSemillasImage != null)
+            {
+                _infoSemillasImage.sprite = GetInfoSprite(seedIndex);
+            }
+
+            _infoSemillasPanel.SetActive(true);
+            Debug.Log($"[CollectionScreen] InfoSemillas.activeSelf después de SetActive(true): {_infoSemillasPanel.activeSelf}");
+
+            SetNavButtonsVisible(false);
+        }
+
+        private void CloseInfo()
+        {
+            if (_infoSemillasPanel != null)
+            {
+                _infoSemillasPanel.SetActive(false);
+            }
+
+            SetNavButtonsVisible(true);
+        }
+
+        private void SetNavButtonsVisible(bool visible)
+        {
+            if (_carouselLeftButton != null)
+            {
+                _carouselLeftButton.gameObject.SetActive(visible);
+            }
+
+            if (_carouselRightButton != null)
+            {
+                _carouselRightButton.gameObject.SetActive(visible);
+            }
+        }
+
+        private Sprite GetCardSprite(int index)
+        {
+            if (_cardSprites == null || index < 0 || index >= _cardSprites.Length)
+            {
+                return null;
+            }
+
+            return _cardSprites[index];
+        }
+
+        private Sprite GetInfoSprite(int index)
+        {
+            if (_infoSprites == null || index < 0 || index >= _infoSprites.Length)
+            {
+                return null;
+            }
+
+            return _infoSprites[index];
+        }
+
+        private SlotBinding BuildSlot(Transform collectionScreenRoot, string cardPath)
+        {
+            Transform cardRoot = UIPathUtility.FindRequired(collectionScreenRoot, cardPath);
+            Button button = UIPathUtility.EnsureButton(cardRoot);
+            
+            Image img = cardRoot.GetComponent<Image>()
+                     ?? cardRoot.GetComponentInChildren<Image>(true);
+            button.onClick.RemoveAllListeners();
+            return new SlotBinding(button, img);
         }
 
         private int Wrap(int index)
@@ -181,26 +219,57 @@ namespace SemillasVivas.UI.MainMenu
 
         private readonly struct SlotBinding
         {
-            public SlotBinding(Button button, TMP_Text label)
+            public SlotBinding(Button button, Image cardImage)
             {
-                Button = button;
-                Label = label;
+                Button    = button;
+                CardImage = cardImage;
             }
 
-            public Button Button { get; }
-            public TMP_Text Label { get; }
+            public Button Button    { get; }
+            public Image  CardImage { get; }
         }
 
         private readonly struct SeedDefinition
         {
-            public SeedDefinition(string name, string description)
+            public SeedDefinition(string name)
             {
                 Name = name;
-                Description = description;
             }
 
             public string Name { get; }
-            public string Description { get; }
+        }
+
+        private static Transform FindTransformByName(Transform root, string name)
+        {
+            if (root == null || string.IsNullOrEmpty(name))
+            {
+                return null;
+            }
+
+            Transform[] all = root.GetComponentsInChildren<Transform>(true);
+
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i].name == name)
+                {
+                    return all[i];
+                }
+            }
+
+            return null;
+        }
+
+        private static string BuildPath(Transform t)
+        {
+            if (t == null) return "null";
+            string path = t.name;
+            Transform parent = t.parent;
+            while (parent != null)
+            {
+                path = parent.name + "/" + path;
+                parent = parent.parent;
+            }
+            return path;
         }
     }
 }

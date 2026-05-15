@@ -1,14 +1,17 @@
 using UnityEngine;
+using SemillasVivas.Systems.Audio;
 
 namespace SemillasVivas.Gameplay.Demo
 {
     public enum DemoPowerUpType
     {
+        None,
         AcaiSpeed,
         CopoazuVitality,
         UvaShield,
         SachaInchiDoubleJump,
         ChontaduroStrength,
+        CocaSlowdown,
     }
 
     public sealed class DemoPlayerPowerUpController : MonoBehaviour
@@ -17,14 +20,17 @@ namespace SemillasVivas.Gameplay.Demo
         [SerializeField] private float acaiMoveSpeed = 6.5f;
         [SerializeField] private float defaultAttackRange = 1f;
         [SerializeField] private float chontaduroAttackRange = 1.8f;
+        [SerializeField] private float highJumpMultiplier = 1.3f;
 
         private DemoPlayerHealth _playerHealth;
+        private DemoCharacterAudioController _audioController;
         private bool _hasShield;
-        private bool _hasDoubleJump;
+        private bool _hasHighJump;
 
         public float CurrentMoveSpeed { get; private set; }
         public float CurrentAttackRange { get; private set; }
-        public int MaxJumpCount => _hasDoubleJump ? 2 : 1;
+        public float CurrentJumpMultiplier => _hasHighJump ? highJumpMultiplier : 1f;
+        public bool HasHighJump => _hasHighJump;
 
         public void Initialize(DemoPlayerHealth playerHealth)
         {
@@ -32,27 +38,45 @@ namespace SemillasVivas.Gameplay.Demo
             CurrentMoveSpeed = defaultMoveSpeed;
             CurrentAttackRange = defaultAttackRange;
             _hasShield = false;
-            _hasDoubleJump = false;
+            _hasHighJump = false;
+        }
+
+        public void SetAudioController(DemoCharacterAudioController audioController)
+        {
+            _audioController = audioController;
         }
 
         public void Apply(DemoPowerUpType powerUpType)
         {
             switch (powerUpType)
             {
+                case DemoPowerUpType.None:
+                    break;
                 case DemoPowerUpType.AcaiSpeed:
                     CurrentMoveSpeed = acaiMoveSpeed;
+                    _audioController?.Play(GameAudioCue.PowerUp);
                     break;
                 case DemoPowerUpType.CopoazuVitality:
                     _playerHealth?.IncreaseMaxHealth(1);
+                    _audioController?.Play(GameAudioCue.Heal);
                     break;
                 case DemoPowerUpType.UvaShield:
                     _hasShield = true;
+                    _audioController?.Play(GameAudioCue.PowerUp);
                     break;
                 case DemoPowerUpType.SachaInchiDoubleJump:
-                    _hasDoubleJump = true;
+                    if (!_hasHighJump)
+                    {
+                        _hasHighJump = true;
+                        _audioController?.Play(GameAudioCue.PowerUp);
+                    }
                     break;
                 case DemoPowerUpType.ChontaduroStrength:
                     CurrentAttackRange = chontaduroAttackRange;
+                    _audioController?.Play(GameAudioCue.PowerUp);
+                    break;
+                case DemoPowerUpType.CocaSlowdown:
+                    _audioController?.Play(GameAudioCue.PowerUp);
                     break;
             }
         }

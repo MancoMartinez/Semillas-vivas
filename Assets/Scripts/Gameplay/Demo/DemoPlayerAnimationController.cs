@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace SemillasVivas.Gameplay.Demo
@@ -8,12 +9,13 @@ namespace SemillasVivas.Gameplay.Demo
     [RequireComponent(typeof(SpriteRenderer))]
     public sealed class DemoPlayerAnimationController : MonoBehaviour
     {
-        private const string IdleState = "Idle";
-        private const string RunState = "Run";
-        private const string FallState = "Fall";
+        private const string IdleState   = "Idle";
+        private const string RunState    = "Run";
+        private const string JumpState   = "Jump";
+        private const string FallState   = "Fall";
         private const string AttackState = "Attack";
-        private const string HurtState = "Huurt";
-        private const string DeathState = "Death";
+        private const string HurtState   = "Hurt";
+        private const string DeathState  = "Death";
 
         private readonly Dictionary<string, float> _clipLengths = new();
 
@@ -21,11 +23,27 @@ namespace SemillasVivas.Gameplay.Demo
         private SpriteRenderer _spriteRenderer;
         private Coroutine _temporaryStateRoutine;
         private string _currentState = string.Empty;
+        
+        private bool _isPlayerJumping;
+        
+        private float _airborneTimer;
+        private const float MinAirborneTimeForFall = 0.15f;
         private float _lastMoveDirection = 1f;
+        private string _idleState   = IdleState;
+        private string _runState    = RunState;
+        private string _jumpState   = JumpState;
+        private string _fallState   = FallState;
+        private string _attackState = AttackState;
+        private string _hurtState   = HurtState;
+        private string _deathState  = DeathState;
 
         public bool IsDead { get; private set; }
         public bool BlocksMovement { get; private set; }
+        
+        public bool IsAttacking { get; private set; }
         public float FacingDirection => _lastMoveDirection;
+        public bool HasAttackState => !string.IsNullOrEmpty(_attackState);
+        public bool HasRunState => !string.IsNullOrEmpty(_runState);
 
         public void Initialize()
         {
@@ -45,7 +63,8 @@ namespace SemillasVivas.Gameplay.Demo
                 _clipLengths[clip.name] = clip.length;
             }
 
-            PlayState(IdleState);
+            ResolveStateNames();
+            PlayState(_idleState);
         }
 
         public void SetFacing(float horizontalInput)
@@ -72,7 +91,20 @@ namespace SemillasVivas.Gameplay.Demo
             }
 
             SetFacing(horizontalInput);
-            PlayState(Mathf.Abs(horizontalInput) > 0.01f ? RunState : IdleState);
+            PlayState(Mathf.Abs(horizontalInput) > 0.01f ? _runState : _idleState);
+        }
+
+        public void NotifyJump()
+        {
+            _isPlayerJumping  = true;
+            
+            _airborneTimer = MinAirborneTimeForFall;
+        }
+
+        public void NotifyLanded()
+        {
+            _isPlayerJumping = false;
+            _airborneTimer   = 0f;
         }
 
         public void UpdateAirborne(bool isGrounded, float verticalVelocity)
@@ -82,30 +114,64 @@ namespace SemillasVivas.Gameplay.Demo
                 return;
             }
 
-            if (!isGrounded && verticalVelocity <= -0.01f)
+            if (isGrounded)
             {
-                PlayState(FallState);
+                
+                _airborneTimer = 0f;
+                return;
             }
+
+            _airborneTimer += Time.deltaTime;
+
+            if (_isPlayerJumping && verticalVelocity > 0f)
+            {
+                
+                PlayState(!string.IsNullOrEmpty(_jumpState) ? _jumpState : _fallState);
+            }
+            else if (_airborneTimer >= MinAirborneTimeForFall && verticalVelocity < -0.8f)
+            {
+                
+                PlayState(_fallState);
+            }
+            
         }
 
         public void PlayAttack()
         {
-            if (IsDead || BlocksMovement)
+            if (IsDead || BlocksMovement || string.IsNullOrEmpty(_attackState))
             {
                 return;
             }
 
-            PlayTemporaryState(AttackState, allowInterrupt: false);
+            IsAttacking = true;
+            PlayTemporaryState(_attackState, allowInterrupt: false);
         }
 
         public void PlayHurt()
         {
-            if (IsDead)
+            if (IsDead || string.IsNullOrEmpty(_hurtState))
             {
                 return;
             }
 
-            PlayTemporaryState(HurtState, allowInterrupt: true);
+            PlayTemporaryState(_hurtState, allowInterrupt: true);
+        }
+
+        public void FlashDamage()
+        {
+            if (_spriteRenderer == null)
+            {
+                return;
+            }
+
+            StartCoroutine(FlashDamageRoutine());
+        }
+
+        private System.Collections.IEnumerator FlashDamageRoutine()
+        {
+            _spriteRenderer.color = new Color(1f, 0.2f, 0.2f);
+            yield return new WaitForSeconds(0.18f);
+            _spriteRenderer.color = Color.white;
         }
 
         public void PlayDeath()
@@ -124,7 +190,7 @@ namespace SemillasVivas.Gameplay.Demo
                 _temporaryStateRoutine = null;
             }
 
-            PlayState(DeathState, forceReplay: true);
+            PlayState(_deathState, forceReplay: true);
         }
 
         private void PlayTemporaryState(string stateName, bool allowInterrupt)
@@ -150,12 +216,58 @@ namespace SemillasVivas.Gameplay.Demo
             yield return new WaitForSeconds(GetClipLength(stateName));
 
             BlocksMovement = false;
+            IsAttacking    = false; 
             _temporaryStateRoutine = null;
-            PlayState(IdleState, forceReplay: true);
+            PlayState(_idleState, forceReplay: true);
+        }
+
+        private void ResolveStateNames()
+        {
+            string[] stateNames = _clipLengths.Keys.ToArray();
+
+            _idleState   = FindBestState(stateNames, "idle");
+            _runState    = FindBestState(stateNames, "run", "walk");
+            _jumpState   = FindBestState(stateNames, "jump");  
+            _fallState   = FindBestState(stateNames, "fall");  
+            _attackState = FindBestState(stateNames, "attack", "strike", "combo");
+            _hurtState   = FindBestState(stateNames, "hurt", "huurt", "damage", "hit");
+            _deathState  = FindBestState(stateNames, "death", "dead", "die");
+
+            if (string.IsNullOrEmpty(_fallState) && !string.IsNullOrEmpty(_jumpState))
+            {
+                _fallState = _jumpState;
+            }
+
+            Debug.Log($"[AnimController] '{name}' estados → " +
+                      $"idle:{_idleState} run:{_runState} jump:{_jumpState} " +
+                      $"fall:{_fallState} attack:{_attackState} hurt:{_hurtState} death:{_deathState}");
+        }
+
+        private static string FindBestState(IEnumerable<string> candidates, params string[] searchTerms)
+        {
+            foreach (string candidate in candidates)
+            {
+                string lowered = candidate.ToLowerInvariant();
+
+                for (int index = 0; index < searchTerms.Length; index++)
+                {
+                    if (lowered.Contains(searchTerms[index]))
+                    {
+                        return candidate;
+                    }
+                }
+            }
+
+            return null;
         }
 
         private void PlayState(string stateName, bool forceReplay = false)
         {
+            if (string.IsNullOrEmpty(stateName) || !_clipLengths.ContainsKey(stateName))
+            {
+                return;
+            }
+
             if (!forceReplay && _currentState == stateName)
             {
                 return;
@@ -167,6 +279,11 @@ namespace SemillasVivas.Gameplay.Demo
 
         private float GetClipLength(string stateName)
         {
+            if (string.IsNullOrEmpty(stateName))
+            {
+                return 0.25f;
+            }
+
             return _clipLengths.TryGetValue(stateName, out float duration) ? duration : 0.25f;
         }
     }

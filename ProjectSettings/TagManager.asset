@@ -3,7 +3,15 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 3
-  tags: []
+  tags:
+  - tronco1
+  - tronco2
+  - TroncoV
+  - TroncoH
+  - TroncoD
+  - ShootMiniBoss
+  - Enemy
+  - FinalBoss
   layers:
   - Default
   - TransparentFX
@@ -11,12 +19,12 @@ TagManager:
   - Ground
   - Water
   - UI
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  - seed
+  - sachainchi
+  - BigBoss
+  - MeleeBoss
+  - ShootBoss
+  - FinalBoss
   - 
   - 
   - 
